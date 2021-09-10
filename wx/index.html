@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <script src="./dist/wx.js"></script>
+  <script>
+    var db =  wx.cloud.database()
+    console.log(db)
+    // var col = db.collection('mydbcollection').doc('123456')
+    // console.log(col)
+    // console.log(col.update())
+
+    // var col = db.collection('mydbcollection').where({
+    //   age: 20
+    // }).get()
+
+    var col = db.collection('mydbcollection').add({
+      op: 123
+    })
+    console.log(col)
+  </script>
+</body>
+</html>
