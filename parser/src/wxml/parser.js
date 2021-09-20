@@ -48,7 +48,10 @@ import {
   getAndRemoveAttrByRegex
 } from './flies/helpers'
 
-const onRE = /^@|^v-on:/
+import { handleAttrs } from './handleAttrs'
+
+// const onRE = /^@|^v-on:/
+const onRE = /^bind/
 // const dirRE = process.env.VBIND_PROP_SHORTHAND
 //   ? /^v-|^@|^:|^\.|^#/
 //   : /^v-|^@|^:|^#/
@@ -86,12 +89,14 @@ let platformMustUseProp
 let platformGetTagNamespace
 let maybeComponent
 
-function createASTElement (
+function createASTElement(
   tag,
   attrs,
   parent
 ) {
-  return {
+  handleAttrs(attrs)
+
+  const ast = {
     type: 1,
     tag,
     attrsList: attrs,
@@ -100,12 +105,14 @@ function createASTElement (
     parent,
     children: []
   }
+
+  return ast
 }
 
 /**
  * Convert HTML string to AST.
  */
-export function parse (
+export function parse(
   template,
   options
 ) {
@@ -132,23 +139,24 @@ export function parse (
   let inPre = false
   let warned = false
 
-  function warnOnce (msg, range) {
+  function warnOnce(msg, range) {
     if (!warned) {
       warned = true
       warn(msg, range)
     }
   }
 
-  function closeElement (element) {
+  function closeElement(element) {
     trimEndingWhitespace(element)
     if (!inVPre && !element.processed) {
       element = processElement(element, options)
     }
     // tree management
+    // 允许根节点带有 v-if、v-else、v-else-if
     if (!stack.length && element !== root) {
       // allow root elements with v-if, v-else-if and v-else
       if (root.if && (element.elseif || element.else)) {
-        
+
         addIfCondition(root, {
           exp: element.elseif,
           block: element
@@ -157,6 +165,7 @@ export function parse (
     }
     if (currentParent && !element.forbidden) {
       if (element.elseif || element.else) {
+        // 处理 v-else-if 和 v-else
         processIfConditions(element, currentParent)
       } else {
         if (element.slotScope) {
@@ -164,7 +173,7 @@ export function parse (
           // keep it in the children list so that v-else(-if) conditions can
           // find it as the prev node.
           const name = element.slotTarget || '"default"'
-          ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
+            ; (currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
         }
         currentParent.children.push(element)
         element.parent = currentParent
@@ -190,7 +199,7 @@ export function parse (
     }
   }
 
-  function trimEndingWhitespace (el) {
+  function trimEndingWhitespace(el) {
     // remove trailing whitespace node
     if (!inPre) {
       let lastNode
@@ -204,7 +213,7 @@ export function parse (
     }
   }
 
-  function checkRootConstraints (el) {
+  function checkRootConstraints(el) {
     if (el.tag === 'slot' || el.tag === 'template') {
       warnOnce(
         `Cannot use <${el.tag}> as component root element because it may ` +
@@ -230,7 +239,7 @@ export function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     outputSourceRange: options.outputSourceRange,
-    start (tag, attrs, unary, start, end) {
+    start(tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
@@ -249,9 +258,9 @@ export function parse (
 
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
-    
+
       }
-      
+
       // apply pre-transforms
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
@@ -277,27 +286,29 @@ export function parse (
 
       if (!root) {
         root = element
- 
+
       }
 
       if (!unary) {
+        // 双标签元素
         currentParent = element
         stack.push(element)
       } else {
+        // 单标签
         closeElement(element)
       }
     },
 
-    end (tag, start, end) {
+    end(tag, start, end) {
       const element = stack[stack.length - 1]
       // pop stack
       stack.length -= 1
       currentParent = stack[stack.length - 1]
-   
+
       closeElement(element)
     },
 
-    chars (text, start, end) {
+    chars(text, start, end) {
       if (!currentParent) {
         return
       }
@@ -355,7 +366,7 @@ export function parse (
         }
       }
     },
-    comment (text, start, end) {
+    comment(text, start, end) {
       // adding anything as a sibling to the root node is forbidden
       // comments should still be allowed, but ignored
       if (currentParent) {
@@ -364,10 +375,6 @@ export function parse (
           text,
           isComment: true
         }
-        // if (process.env.NODE_ENV !== 'production' && options.outputSourceRange) {
-        //   child.start = start
-        //   child.end = end
-        // }
         currentParent.children.push(child)
       }
     }
@@ -375,13 +382,13 @@ export function parse (
   return root
 }
 
-function processPre (el) {
+function processPre(el) {
   if (getAndRemoveAttr(el, 'v-pre') != null) {
     el.pre = true
   }
 }
 
-function processRawAttrs (el) {
+function processRawAttrs(el) {
   const list = el.attrsList
   const len = list.length
   if (len) {
@@ -402,7 +409,7 @@ function processRawAttrs (el) {
   }
 }
 
-function processElement (
+function processElement(
   element,
   options
 ) {
@@ -427,15 +434,15 @@ function processElement (
   return element
 }
 
-function processKey (el) {
+function processKey(el) {
   const exp = getBindingAttr(el, 'key')
   if (exp) {
-   
+
     el.key = exp
   }
 }
 
-function processRef (el) {
+function processRef(el) {
   const ref = getBindingAttr(el, 'ref')
   if (ref) {
     el.ref = ref
@@ -443,18 +450,18 @@ function processRef (el) {
   }
 }
 
-function processFor (el) {
+function processFor(el) {
   let exp
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
     const res = parseFor(exp)
     if (res) {
       extend(el, res)
-    } 
+    }
   }
 }
 
 
-function parseFor (exp) {
+function parseFor(exp) {
   const inMatch = exp.match(forAliasRE)
   if (!inMatch) return
   const res = {}
@@ -473,7 +480,7 @@ function parseFor (exp) {
   return res
 }
 
-function processIf (el) {
+function processIf(el) {
   const exp = getAndRemoveAttr(el, 'v-if')
   if (exp) {
     el.if = exp
@@ -492,36 +499,36 @@ function processIf (el) {
   }
 }
 
-function processIfConditions (el, parent) {
+function processIfConditions(el, parent) {
   const prev = findPrevElement(parent.children)
   if (prev && prev.if) {
     addIfCondition(prev, {
       exp: el.elseif,
       block: el
     })
-  } 
+  }
 }
 
-function findPrevElement (children) {
+function findPrevElement(children) {
   let i = children.length
   while (i--) {
     if (children[i].type === 1) {
       return children[i]
     } else {
-   
+
       children.pop()
     }
   }
 }
 
-function addIfCondition (el, condition) {
+function addIfCondition(el, condition) {
   if (!el.ifConditions) {
     el.ifConditions = []
   }
   el.ifConditions.push(condition)
 }
 
-function processOnce (el) {
+function processOnce(el) {
   const once = getAndRemoveAttr(el, 'v-once')
   if (once != null) {
     el.once = true
@@ -530,16 +537,16 @@ function processOnce (el) {
 
 // handle content being passed to a component as slot,
 // e.g. <template slot="xxx">, <div slot-scope="xxx">
-function processSlotContent (el) {
+function processSlotContent(el) {
   let slotScope
   if (el.tag === 'template') {
     slotScope = getAndRemoveAttr(el, 'scope')
     /* istanbul ignore if */
-   
+
     el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope')
   } else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
     /* istanbul ignore if */
- 
+
     el.slotScope = slotScope
   }
 
@@ -558,14 +565,14 @@ function processSlotContent (el) {
 }
 
 // handle <slot/> outlets
-function processSlotOutlet (el) {
+function processSlotOutlet(el) {
   if (el.tag === 'slot') {
     el.slotName = getBindingAttr(el, 'name')
 
   }
 }
 
-function processComponent (el) {
+function processComponent(el) {
   let binding
   if ((binding = getBindingAttr(el, 'is'))) {
     el.component = binding
@@ -575,7 +582,7 @@ function processComponent (el) {
   }
 }
 
-function processAttrs (el) {
+function processAttrs(el) {
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, syncGen, isDynamic
   for (i = 0, l = list.length; i < l; i++) {
@@ -586,6 +593,7 @@ function processAttrs (el) {
       el.hasBindings = true
       // modifiers
       modifiers = parseModifiers(name.replace(dirRE, ''))
+      console.log(modifiers, 'modifiers')
       // support .foo shorthand syntax for the .prop modifier
       // if (process.env.VBIND_PROP_SHORTHAND && propBindRE.test(name)) {
       //   (modifiers || (modifiers = {})).prop = true
@@ -601,7 +609,7 @@ function processAttrs (el) {
         if (isDynamic) {
           name = name.slice(1, -1)
         }
-      
+
         if (modifiers) {
           if (modifiers.prop && !isDynamic) {
             name = camelize(name)
@@ -676,25 +684,24 @@ function processAttrs (el) {
           }
         }
         addDirective(el, name, rawName, value, arg, isDynamic, modifiers, list[i])
-        
+
       }
-    } else 
-    {
+    } else {
       // literal attribute
-      
+
       addAttr(el, name, JSON.stringify(value), list[i])
       // #6887 firefox doesn't update muted state if set via attribute
       // even immediately after element creation
       if (!el.component &&
-          name === 'muted' &&
-          platformMustUseProp(el.tag, el.attrsMap.type, name)) {
+        name === 'muted' &&
+        platformMustUseProp(el.tag, el.attrsMap.type, name)) {
         addProp(el, name, 'true', list[i])
       }
     }
   }
 }
 
-function checkInFor (el) {
+function checkInFor(el) {
   let parent = el
   while (parent) {
     if (parent.for !== undefined) {
@@ -705,7 +712,7 @@ function checkInFor (el) {
   return false
 }
 
-function parseModifiers (name) {
+function parseModifiers(name) {
   const match = name.match(modifierRE)
   if (match) {
     const ret = {}
@@ -714,7 +721,7 @@ function parseModifiers (name) {
   }
 }
 
-function makeAttrsMap (attrs) {
+function makeAttrsMap(attrs) {
   const map = {}
   for (let i = 0, l = attrs.length; i < l; i++) {
     map[attrs[i].name] = attrs[i].value
@@ -723,11 +730,11 @@ function makeAttrsMap (attrs) {
 }
 
 // for script (e.g. type="x/template") or style, do not decode content
-function isTextTag (el) {
+function isTextTag(el) {
   return el.tag === 'script' || el.tag === 'style'
 }
 
-function isForbiddenTag (el) {
+function isForbiddenTag(el) {
   return (
     el.tag === 'style' ||
     (el.tag === 'script' && (
@@ -741,7 +748,7 @@ const ieNSBug = /^xmlns:NS\d+/
 const ieNSPrefix = /^NS\d+:/
 
 /* istanbul ignore next */
-function guardIESVGBug (attrs) {
+function guardIESVGBug(attrs) {
   const res = []
   for (let i = 0; i < attrs.length; i++) {
     const attr = attrs[i]
@@ -753,7 +760,7 @@ function guardIESVGBug (attrs) {
   return res
 }
 
-function checkForAliasModel (el, value) {
+function checkForAliasModel(el, value) {
   let _el = el
   while (_el) {
     if (_el.for && _el.alias === value) {

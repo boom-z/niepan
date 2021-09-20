@@ -4,12 +4,12 @@ import { parseFilters } from './filter-parser'
 
 
 /* eslint-disable no-unused-vars */
-export function baseWarn (msg, range) {
+export function baseWarn(msg, range) {
   console.error(`[Vue compiler]: ${msg}`)
 }
 /* eslint-enable no-unused-vars */
 
-export function pluckModuleFunction (
+export function pluckModuleFunction(
   modules,
   key
 ) {
@@ -18,12 +18,12 @@ export function pluckModuleFunction (
     : []
 }
 
-export function addProp (el, name, value, range, dynamic) {
+export function addProp(el, name, value, range, dynamic) {
   (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
   el.plain = false
 }
 
-export function addAttr (el, name, value, range, dynamic) {
+export function addAttr(el, name, value, range, dynamic) {
   const attrs = dynamic
     ? (el.dynamicAttrs || (el.dynamicAttrs = []))
     : (el.attrs || (el.attrs = []))
@@ -32,12 +32,12 @@ export function addAttr (el, name, value, range, dynamic) {
 }
 
 // add a raw attr (use this in preTransforms)
-export function addRawAttr (el, name, value, range) {
+export function addRawAttr(el, name, value, range) {
   el.attrsMap[name] = value
   el.attrsList.push(rangeSetItem({ name, value }, range))
 }
 
-export function addDirective (
+export function addDirective(
   el,
   name,
   rawName,
@@ -58,13 +58,14 @@ export function addDirective (
   el.plain = false
 }
 
-function prependModifierMarker (symbol, name, dynamic) {
+function prependModifierMarker(symbol, name, dynamic) {
   return dynamic
     ? `_p(${name},"${symbol}")`
     : symbol + name // mark the event as captured
 }
 
-export function addHandler (
+// 添加事件处理
+export function addHandler(
   el,
   name,
   value,
@@ -138,7 +139,7 @@ export function addHandler (
   el.plain = false
 }
 
-export function getRawBindingAttr (
+export function getRawBindingAttr(
   el,
   name
 ) {
@@ -147,7 +148,7 @@ export function getRawBindingAttr (
     el.rawAttrsMap[name]
 }
 
-export function getBindingAttr (
+export function getBindingAttr(
   el,
   name,
   getStatic
@@ -156,7 +157,7 @@ export function getBindingAttr (
     getAndRemoveAttr(el, ':' + name) ||
     getAndRemoveAttr(el, 'v-bind:' + name)
   if (dynamicValue != null) {
-    return parseFilters(dynamicValue)
+    return parseFilters(dynamicValue) // 表达式解析
   } else if (getStatic !== false) {
     const staticValue = getAndRemoveAttr(el, name)
     if (staticValue != null) {
@@ -169,7 +170,14 @@ export function getBindingAttr (
 // doesn't get processed by processAttrs.
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
-export function getAndRemoveAttr (
+/**
+ * 从 attrsList 移除属性
+ * @param {*} el 
+ * @param {*} name 
+ * @param {*} removeFromMap 
+ * @returns 返回移除的属性的取值
+ */
+export function getAndRemoveAttr(
   el,
   name,
   removeFromMap
@@ -190,7 +198,7 @@ export function getAndRemoveAttr (
   return val
 }
 
-export function getAndRemoveAttrByRegex (
+export function getAndRemoveAttrByRegex(
   el,
   name
 ) {
@@ -204,7 +212,7 @@ export function getAndRemoveAttrByRegex (
   }
 }
 
-function rangeSetItem (
+function rangeSetItem(
   item,
   range
 ) {
