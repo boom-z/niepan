@@ -25,7 +25,7 @@ export const MapEventWXToWeb = (attrs: IAttr[]) => {
     const e = attrs[i];
     if (!e.name.startsWith('bind')) continue;
     const name = e.name.replace(onRE, '');
-    e.name = `@${eventMap[name] ? eventMap[name] : name}`;
+    e.name = `@${eventMap[name] ? eventMap[name] : name}.native`;
   }
 };
 

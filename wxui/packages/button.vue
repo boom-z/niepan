@@ -1,4 +1,9 @@
-<style></style>
+<style>
+button {
+  width: 80%;
+  margin: auto;
+}
+</style>
 
 <template>
   <button

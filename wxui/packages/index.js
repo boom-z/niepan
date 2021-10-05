@@ -1,4 +1,4 @@
-// 导入button组件
+// 导入组件
 import WxCheckbox from './checkbox.vue';
 import WxImage from './image.vue';
 import WxButton from './button.vue';

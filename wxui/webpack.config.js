@@ -1,5 +1,8 @@
 const path = require('path')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   entry: path.resolve(__dirname, './packages/index.js'),
@@ -30,13 +33,23 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: ["style-loader", "css-loader"],
+        use: [MiniCssExtractPlugin.loader, "css-loader"],
         exclude: /node_modules/,
       }
     ]
   },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      new CssMinimizerPlugin(),
+      new TerserPlugin()
+    ]
+  },
   plugins: [
-    new VueLoaderPlugin()
+    new VueLoaderPlugin(),
+    new MiniCssExtractPlugin({
+      filename: 'wxUI.css'
+    })
   ],
   resolve: {
     extensions: ['.vue', '.js'],

@@ -6,7 +6,7 @@ module.exports = {
   entry: path.resolve(__dirname, './src/index.ts'),
   output: {
     filename: 'wx.js',
-    path: path.resolve(__dirname, '../nirvana-frontend/static/runnob'),
+    path: path.resolve(__dirname, '../../nirvana-frontend/static/runnob'),
     library: 'wx',
     libraryTarget: 'umd'
   },
@@ -56,6 +56,6 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: [ '.tsx', '.ts', '.js' ]
+    extensions: ['.tsx', '.ts', '.js']
   }
 }

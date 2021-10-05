@@ -2,6 +2,8 @@ import { IMapType } from '../handleAttrs/typing';
 
 const elementMap: IMapType<string> = {
   view: 'div',
+  // button: 'button',
+  // template: 'template',
 };
 
 /**
